@@ -4,9 +4,9 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "paths": {
-      "@alifarooq/result-kit": ["./src/index.ts"],
-      "@alifarooq/result-kit/core": ["./src/core/index.ts"],
-      "@alifarooq/result-kit/nest": ["./src/nest/index.ts"]
+      "@zireal/result-kit": ["./src/index.ts"],
+      "@zireal/result-kit/core": ["./src/core/index.ts"],
+      "@zireal/result-kit/nest": ["./src/nest/index.ts"]
     },
     "strict": true,
     "declaration": true,

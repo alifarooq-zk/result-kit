@@ -1,5 +1,5 @@
 {
-  "name": "@alifarooq/result-kit",
+  "name": "@zireal/result-kit",
   "version": "1.0.0",
   "description": "Type-safe result and structured error utilities for TypeScript, with optional NestJS adapters.",
   "license": "MIT",
@@ -19,6 +19,9 @@
   "scripts": {
     "build": "tsdown",
     "clean": "rm -rf dist coverage",
+    "changeset": "changeset",
+    "changeset:version": "changeset version",
+    "changeset:publish": "changeset publish",
     "test": "vitest run",
     "test:watch": "vitest watch",
     "test:cov": "vitest run --coverage",
@@ -34,6 +37,7 @@
   },
   "devDependencies": {
     "@arethetypeswrong/core": "^0.18.2",
+    "@changesets/cli": "^2.30.0",
     "@nestjs/common": "^11.1.17",
     "@types/node": "^22.19.15",
     "publint": "^0.3.18",

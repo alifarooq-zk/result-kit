@@ -1,19 +1,19 @@
-# @alifarooq/result-kit
+# @zireal/result-kit
 
 Type-safe result and structured error utilities for TypeScript, with optional NestJS adapters.
 
 ## Packages
 
-- `@alifarooq/result-kit`
-- `@alifarooq/result-kit/core`
-- `@alifarooq/result-kit/nest`
+- `@zireal/result-kit`
+- `@zireal/result-kit/core`
+- `@zireal/result-kit/nest`
 
-The package root re-exports the framework-agnostic core only. Nest-specific helpers live in `@alifarooq/result-kit/nest`.
+The package root re-exports the framework-agnostic core only. Nest-specific helpers live in `@zireal/result-kit/nest`.
 
 ## Installation
 
 ```bash
-pnpm add @alifarooq/result-kit
+pnpm add @zireal/result-kit
 ```
 
 If you use the Nest adapter:
@@ -48,22 +48,26 @@ interface TypedError<TType extends string = string> {
 ## Core Usage
 
 ```ts
-import { ResultKit, type Result, type TypedErrorUnion } from '@alifarooq/result-kit';
+import {
+  ResultKit,
+  type Result,
+  type TypedErrorUnion,
+} from "@zireal/result-kit";
 
-type UserError = TypedErrorUnion<'not_found' | 'validation_error'>;
+type UserError = TypedErrorUnion<"not_found" | "validation_error">;
 
 const findUser = (id: string): Result<{ id: string }, UserError> => {
   if (!id.trim()) {
     return ResultKit.fail({
-      type: 'validation_error',
-      message: 'id is required',
+      type: "validation_error",
+      message: "id is required",
     });
   }
 
-  if (id !== '123') {
+  if (id !== "123") {
     return ResultKit.fail({
-      type: 'not_found',
-      message: 'User not found',
+      type: "not_found",
+      message: "User not found",
       details: { id },
     });
   }
@@ -75,15 +79,15 @@ const findUser = (id: string): Result<{ id: string }, UserError> => {
 ## Nest Usage
 
 ```ts
-import { Controller, Get, Param } from '@nestjs/common';
-import { unwrapOrThrow } from '@alifarooq/result-kit/nest';
+import { Controller, Get, Param } from "@nestjs/common";
+import { unwrapOrThrow } from "@zireal/result-kit/nest";
 
-@Controller('users')
+@Controller("users")
 export class UserController {
   constructor(private readonly service: UserService) {}
 
-  @Get(':id')
-  async getUser(@Param('id') id: string) {
+  @Get(":id")
+  async getUser(@Param("id") id: string) {
     return unwrapOrThrow(await this.service.findUser(id));
   }
 }
@@ -92,17 +96,17 @@ export class UserController {
 Use a mapper when your domain error types need custom HTTP status behavior:
 
 ```ts
-import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { unwrapOrThrow } from '@alifarooq/result-kit/nest';
-import { ResultKit } from '@alifarooq/result-kit';
+import { BadRequestException, NotFoundException } from "@nestjs/common";
+import { unwrapOrThrow } from "@zireal/result-kit/nest";
+import { ResultKit } from "@zireal/result-kit";
 
 const user = unwrapOrThrow(result, {
   mapError: (error) => {
     if (!ResultKit.isTypedError(error)) return undefined;
-    if (error.type === 'validation_error') {
+    if (error.type === "validation_error") {
       return new BadRequestException(error.message);
     }
-    if (error.type === 'not_found') {
+    if (error.type === "not_found") {
       return new NotFoundException(error.message);
     }
 
