@@ -1,4 +1,4 @@
-import { ResultKit, type Result, type TypedErrorUnion } from 'result-kit';
+import { ResultKit, type Result, type TypedErrorUnion } from '@alifarooq/result-kit';
 
 type UserError = TypedErrorUnion<'not_found' | 'validation_error'>;
 

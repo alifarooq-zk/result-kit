@@ -11,7 +11,7 @@ import {
   unwrapPromise,
 } from '../../src/nest';
 
-describe('result-kit/nest', () => {
+describe('@alifarooq/result-kit/nest', () => {
   it('unwraps successful results without throwing', () => {
     const value = unwrapOrThrow(ResultKit.success(42));
 

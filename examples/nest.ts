@@ -5,8 +5,8 @@ import {
   NotFoundException,
   Param,
 } from '@nestjs/common';
-import { ResultKit, type Result, type TypedErrorUnion } from 'result-kit';
-import { unwrapOrThrow } from 'result-kit/nest';
+import { ResultKit, type Result, type TypedErrorUnion } from '@alifarooq/result-kit';
+import { unwrapOrThrow } from '@alifarooq/result-kit/nest';
 
 type UserError = TypedErrorUnion<'not_found' | 'validation_error'>;
 
