@@ -4,25 +4,29 @@ import {
   Get,
   NotFoundException,
   Param,
-} from '@nestjs/common';
-import { ResultKit, type Result, type TypedErrorUnion } from '@alifarooq/result-kit';
-import { unwrapOrThrow } from '@alifarooq/result-kit/nest';
+} from "@nestjs/common";
+import {
+  ResultKit,
+  type Result,
+  type TypedErrorUnion,
+} from "@zireal/result-kit";
+import { unwrapOrThrow } from "@zireal/result-kit/nest";
 
-type UserError = TypedErrorUnion<'not_found' | 'validation_error'>;
+type UserError = TypedErrorUnion<"not_found" | "validation_error">;
 
 class UserService {
   async findUser(id: string): Promise<Result<{ id: string }, UserError>> {
     if (!id.trim()) {
       return ResultKit.fail({
-        type: 'validation_error',
-        message: 'id is required',
+        type: "validation_error",
+        message: "id is required",
       });
     }
 
-    if (id !== '123') {
+    if (id !== "123") {
       return ResultKit.fail({
-        type: 'not_found',
-        message: 'User not found',
+        type: "not_found",
+        message: "User not found",
       });
     }
 
@@ -30,12 +34,12 @@ class UserService {
   }
 }
 
-@Controller('users')
+@Controller("users")
 export class UserController {
   constructor(private readonly service: UserService) {}
 
-  @Get(':id')
-  async getUser(@Param('id') id: string) {
+  @Get(":id")
+  async getUser(@Param("id") id: string) {
     const result = await this.service.findUser(id);
 
     return unwrapOrThrow(result, {
@@ -44,11 +48,11 @@ export class UserController {
           return undefined;
         }
 
-        if (error.type === 'validation_error') {
+        if (error.type === "validation_error") {
           return new BadRequestException(error.message);
         }
 
-        if (error.type === 'not_found') {
+        if (error.type === "not_found") {
           return new NotFoundException(error.message);
         }
 
