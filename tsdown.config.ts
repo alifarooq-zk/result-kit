@@ -1,4 +1,4 @@
-import { defineConfig } from 'tsup';
+import { defineConfig } from 'tsdown';
 
 export default defineConfig({
   entry: {
@@ -12,7 +12,14 @@ export default defineConfig({
   clean: true,
   target: 'es2022',
   outDir: 'dist',
-  splitting: false,
   treeshake: true,
-  external: ['@nestjs/common'],
+  exports: true,
+  publint: true,
+  attw: {
+    profile: 'node16',
+    level: 'error',
+  },
+  deps: {
+    neverBundle: ['@nestjs/common'],
+  },
 });

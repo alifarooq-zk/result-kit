@@ -1,38 +1,23 @@
 {
-  "name": "result-kit",
-  "version": "0.1.0",
+  "name": "@alifarooq/result-kit",
+  "version": "1.0.0",
   "description": "Type-safe result and structured error utilities for TypeScript, with optional NestJS adapters.",
   "license": "MIT",
   "author": "Ali Farooq <alifarooq122@gmail.com>",
   "type": "module",
   "sideEffects": false,
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "files": [
-    "dist",
-    "README.md",
-    "examples"
-  ],
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
-    },
-    "./core": {
-      "types": "./dist/core/index.d.ts",
-      "import": "./dist/core/index.js",
-      "require": "./dist/core/index.cjs"
-    },
-    "./nest": {
-      "types": "./dist/nest/index.d.ts",
-      "import": "./dist/nest/index.js",
-      "require": "./dist/nest/index.cjs"
-    }
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alifarooq-zk/result-kit.git"
   },
+  "keywords": [
+    "result",
+    "error-handling",
+    "result-type",
+    "result monad"
+  ],
   "scripts": {
-    "build": "tsup",
+    "build": "tsdown",
     "clean": "rm -rf dist coverage",
     "test": "vitest run",
     "test:watch": "vitest watch",
@@ -48,13 +33,33 @@
     }
   },
   "devDependencies": {
+    "@arethetypeswrong/core": "^0.18.2",
     "@nestjs/common": "^11.1.17",
     "@types/node": "^22.19.15",
-    "tsup": "^8.5.0",
+    "publint": "^0.3.18",
+    "tsdown": "^0.21.4",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
   },
   "engines": {
     "node": ">=20.0.0"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.cts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    },
+    "./core": {
+      "import": "./dist/core/index.mjs",
+      "require": "./dist/core/index.cjs"
+    },
+    "./nest": {
+      "import": "./dist/nest/index.mjs",
+      "require": "./dist/nest/index.cjs"
+    },
+    "./package.json": "./package.json"
   }
 }

@@ -4,9 +4,9 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "paths": {
-      "result-kit": ["./src/index.ts"],
-      "result-kit/core": ["./src/core/index.ts"],
-      "result-kit/nest": ["./src/nest/index.ts"]
+      "@alifarooq/result-kit": ["./src/index.ts"],
+      "@alifarooq/result-kit/core": ["./src/core/index.ts"],
+      "@alifarooq/result-kit/nest": ["./src/nest/index.ts"]
     },
     "strict": true,
     "declaration": true,
@@ -21,5 +21,5 @@
     "verbatimModuleSyntax": true,
     "types": ["node", "vitest/globals"]
   },
-  "include": ["src", "test", "examples", "vitest.config.ts", "tsup.config.ts"]
+  "include": ["src", "test", "examples", "vitest.config.ts", "tsdown.config.ts"]
 }

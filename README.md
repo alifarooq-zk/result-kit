@@ -1,19 +1,19 @@
-# result-kit
+# @alifarooq/result-kit
 
 Type-safe result and structured error utilities for TypeScript, with optional NestJS adapters.
 
 ## Packages
 
-- `result-kit`
-- `result-kit/core`
-- `result-kit/nest`
+- `@alifarooq/result-kit`
+- `@alifarooq/result-kit/core`
+- `@alifarooq/result-kit/nest`
 
-The package root re-exports the framework-agnostic core only. Nest-specific helpers live in `result-kit/nest`.
+The package root re-exports the framework-agnostic core only. Nest-specific helpers live in `@alifarooq/result-kit/nest`.
 
 ## Installation
 
 ```bash
-pnpm add result-kit
+pnpm add @alifarooq/result-kit
 ```
 
 If you use the Nest adapter:
@@ -48,7 +48,7 @@ interface TypedError<TType extends string = string> {
 ## Core Usage
 
 ```ts
-import { ResultKit, type Result, type TypedErrorUnion } from 'result-kit';
+import { ResultKit, type Result, type TypedErrorUnion } from '@alifarooq/result-kit';
 
 type UserError = TypedErrorUnion<'not_found' | 'validation_error'>;
 
@@ -76,7 +76,7 @@ const findUser = (id: string): Result<{ id: string }, UserError> => {
 
 ```ts
 import { Controller, Get, Param } from '@nestjs/common';
-import { unwrapOrThrow } from 'result-kit/nest';
+import { unwrapOrThrow } from '@alifarooq/result-kit/nest';
 
 @Controller('users')
 export class UserController {
@@ -93,8 +93,8 @@ Use a mapper when your domain error types need custom HTTP status behavior:
 
 ```ts
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { unwrapOrThrow } from 'result-kit/nest';
-import { ResultKit } from 'result-kit';
+import { unwrapOrThrow } from '@alifarooq/result-kit/nest';
+import { ResultKit } from '@alifarooq/result-kit';
 
 const user = unwrapOrThrow(result, {
   mapError: (error) => {
