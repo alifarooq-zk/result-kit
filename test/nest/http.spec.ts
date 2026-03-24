@@ -1,53 +1,49 @@
 import {
   BadRequestException,
   InternalServerErrorException,
-} from '@nestjs/common';
-import { describe, expect, it } from 'vitest';
+} from "@nestjs/common";
+import { describe, expect, it } from "vitest";
 
-import { ResultKit } from '../../src/core';
-import {
-  toHttpException,
-  unwrapOrThrow,
-  unwrapPromise,
-} from '../../src/nest';
+import { ResultKit } from "../../src/core";
+import { toHttpException, unwrapOrThrow, unwrapPromise } from "../../src/nest";
 
-describe('@alifarooq/result-kit/nest', () => {
-  it('unwraps successful results without throwing', () => {
+describe("@zireal/result-kit/nest", () => {
+  it("unwraps successful results without throwing", () => {
     const value = unwrapOrThrow(ResultKit.success(42));
 
     expect(value).toBe(42);
   });
 
-  it('converts typed errors to internal server exceptions by default', () => {
+  it("converts typed errors to internal server exceptions by default", () => {
     const error = ResultKit.fail({
-      type: 'validation_error',
-      message: 'Payload is invalid',
-      details: { field: 'email' },
+      type: "validation_error",
+      message: "Payload is invalid",
+      details: { field: "email" },
     }).error;
 
     const exception = toHttpException(error);
 
     expect(exception).toBeInstanceOf(InternalServerErrorException);
     expect(exception.getResponse()).toEqual({
-      code: 'VALIDATION_ERROR',
-      message: 'Payload is invalid',
-      details: { field: 'email' },
+      code: "VALIDATION_ERROR",
+      message: "Payload is invalid",
+      details: { field: "email" },
     });
   });
 
-  it('supports caller-provided Nest mapping', () => {
+  it("supports caller-provided Nest mapping", () => {
     const result = ResultKit.fail({
-      type: 'validation_error',
-      message: 'Payload is invalid',
-      details: { field: 'email' },
+      type: "validation_error",
+      message: "Payload is invalid",
+      details: { field: "email" },
     });
 
     expect(() =>
       unwrapOrThrow(result, {
         mapError: (error) =>
-          ResultKit.isTypedError(error) && error.type === 'validation_error'
+          ResultKit.isTypedError(error) && error.type === "validation_error"
             ? new BadRequestException({
-                code: 'BAD_INPUT',
+                code: "BAD_INPUT",
                 message: error.message,
                 details: error.details,
               })
@@ -56,17 +52,17 @@ describe('@alifarooq/result-kit/nest', () => {
     ).toThrow(BadRequestException);
   });
 
-  it('unwraps promise results and falls back on unknown errors', async () => {
+  it("unwraps promise results and falls back on unknown errors", async () => {
     await expect(
-      unwrapPromise(Promise.resolve(ResultKit.success('ok'))),
-    ).resolves.toBe('ok');
+      unwrapPromise(Promise.resolve(ResultKit.success("ok"))),
+    ).resolves.toBe("ok");
 
     const exception = toHttpException({ nope: true });
 
     expect(exception).toBeInstanceOf(InternalServerErrorException);
     expect(exception.getResponse()).toEqual({
-      code: 'INTERNAL_SERVER_ERROR',
-      message: 'An unknown error occurred',
+      code: "INTERNAL_SERVER_ERROR",
+      message: "An unknown error occurred",
     });
   });
 });
