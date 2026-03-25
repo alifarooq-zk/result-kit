@@ -1,5 +1,11 @@
 # @zireal/result-kit
 
+## 1.0.2
+
+### Patch Changes
+
+- 6aa0638: Fix npm publishing so the built `dist` files are generated before release and included in the published package tarball.
+
 ## 1.0.1
 
 ### Patch Changes
