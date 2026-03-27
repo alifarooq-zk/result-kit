@@ -27,15 +27,22 @@ pnpm add @nestjs/common
 ### `TypedError`
 
 ```ts
-interface TypedError<TType extends string = string> {
+interface TypedError<
+  TType extends string = string,
+  TDetails extends Record<string, unknown> | undefined =
+    | Record<string, unknown>
+    | undefined,
+> {
   type: TType;
   message: string;
-  details?: Record<string, unknown>;
+  details?: TDetails;
   cause?: unknown;
 }
 ```
 
 `TypedError` is the package's default error convention. It gives failures a stable `type` discriminator while preserving a human-readable `message` and optional structured metadata.
+
+`fail(...)` preserves the full error subtype, so richer domain-specific payloads remain intact.
 
 Use `TypedErrorUnion<...>` to model domain-specific failures:
 
@@ -45,7 +52,7 @@ type UserError = TypedErrorUnion<"not_found" | "validation_error">;
 
 ### `Result<T, E>`
 
-`Result<T, E>` is a fluent result object with two concrete variants:
+`Result<T, E>` is a discriminated union with two fluent concrete variants:
 
 - `Ok<T>` for success values
 - `Err<E>` for failure values
@@ -112,10 +119,7 @@ const result = ok("session-token")
   .andThen(requireSession)
   .andThen((session) => findUser(session.userId));
 
-const message = result.match(
-  (user) => user.id,
-  (error) => error.message,
-);
+const message = result.ok ? result.value.id : result.error.message;
 
 const branded = ResultKit
   .ok("session-token")
@@ -180,11 +184,10 @@ import { unwrapOrThrow } from "@zireal/result-kit/nest";
 
 const user = unwrapOrThrow(result, {
   mapError: (error) => {
-    if (!isTypedError(error)) return undefined;
-    if (error.type === "validation_error") {
+    if (isTypedError(error, "validation_error")) {
       return new BadRequestException(error.message);
     }
-    if (error.type === "not_found") {
+    if (isTypedError(error, "not_found")) {
       return new NotFoundException(error.message);
     }
 
@@ -198,6 +201,8 @@ const user = unwrapOrThrow(result, {
 ### Core
 
 - `TypedError`, `TypedErrorOf`, `TypedErrorUnion`, `isTypedError`
+- `ResultValue`, `ResultError`, `ResultOk`, `ResultErr`
+- `AsyncResultValue`, `AsyncResultError`
 - `Ok`, `Err`, `Result`, `ResultAsync`
 - `ok`, `fail`, `err`, `okAsync`, `errAsync`
 - `ResultKit`
