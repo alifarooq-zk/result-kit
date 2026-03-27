@@ -7,6 +7,7 @@ import {
 } from "@nestjs/common";
 import {
   ResultKit,
+  isTypedError,
   type Result,
   type TypedErrorUnion,
 } from "@zireal/result-kit";
@@ -30,7 +31,7 @@ class UserService {
       });
     }
 
-    return ResultKit.success({ id });
+    return ResultKit.ok({ id });
   }
 }
 
@@ -44,7 +45,7 @@ export class UserController {
 
     return unwrapOrThrow(result, {
       mapError: (error) => {
-        if (!ResultKit.isTypedError(error)) {
+        if (!isTypedError(error)) {
           return undefined;
         }
 

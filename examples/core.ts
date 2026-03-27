@@ -1,5 +1,7 @@
 import {
   ResultKit,
+  fail,
+  ok,
   type Result,
   type TypedErrorUnion,
 } from "@zireal/result-kit";
@@ -11,48 +13,47 @@ const requireSession = (
   token: string,
 ): Result<{ userId: string }, AuthError> => {
   if (!token.trim()) {
-    return ResultKit.fail({
+    return fail({
       type: "missing_token",
       message: "token is required",
     });
   }
 
-  return ResultKit.success({ userId: "123" });
+  return ok({ userId: "123" });
 };
 
 const findUser = (
   id: string,
 ): Result<{ id: string; name: string }, UserError> => {
   if (!id.trim()) {
-    return ResultKit.fail({
+    return fail({
       type: "validation_error",
       message: "id is required",
     });
   }
 
   if (id !== "123") {
-    return ResultKit.fail({
+    return fail({
       type: "not_found",
       message: "User not found",
       details: { id },
     });
   }
 
-  return ResultKit.success({
+  return ok({
     id,
     name: "Ada Lovelace",
   });
 };
 
-const result = ResultKit
-  .pipe("session-token")
+const result = ok("session-token")
   .andThen(requireSession)
-  .andThen((session) => findUser(session.userId))
-  .done();
+  .andThen((session) => findUser(session.userId));
 
-console.log(
-  ResultKit.match(result, {
-    onSuccess: (user) => user.name,
-    onFailure: (error) => error.message,
-  }),
-);
+const brandedResult = ResultKit
+  .ok("session-token")
+  .andThen(requireSession)
+  .andThen((session) => findUser(session.userId));
+
+console.log(result.match((user) => user.name, (error) => error.message));
+console.log(brandedResult.match((user) => user.name, (error) => error.message));
