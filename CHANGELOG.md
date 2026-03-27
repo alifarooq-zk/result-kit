@@ -1,5 +1,62 @@
 # @zireal/result-kit
 
+## 2.0.0
+
+### Major Changes
+
+- 8fbc07e: Replace the v1 static-helper and pipeline model with a fluent class-based result API.
+
+  Breaking changes:
+
+  - Removed `ResultPipeline` and `AsyncResultPipeline`
+  - Removed `pipe(...)` and `pipeAsync(...)`
+  - Removed the old static-first helpers such as `ResultKit.map(...)`, `andThen(...)`, `orElse(...)`, and `match(...)`
+  - Result values are now class-backed `Ok` and `Err` instances
+
+  New primary API:
+
+  - `ok(...)` for success values
+  - `fail(...)` for `TypedError`-first failures
+  - `err(...)` for generic non-typed failures
+  - `ResultAsync` for fluent async composition
+  - instance methods such as `.andThen(...)`, `.map(...)`, `.orElse(...)`, and `.match(...)`
+
+  Why:
+
+  The old API required a separate static namespace and pipeline wrapper to compose results. v2 moves composition onto the result value itself, keeps `TypedError` as the package-default error model, and makes async flows first-class with `ResultAsync`.
+
+  How to migrate:
+
+  - Replace `ResultKit.success(value)` with `ok(value)`
+  - Replace `ResultKit.fail(error)` with `fail(error)`
+  - Replace `ResultKit.failure(error)` with `err(error)`
+  - Replace `ResultKit.pipe(value).andThen(step)` with `ok(value).andThen(step)`
+  - Replace `ResultKit.pipe(existingResult).andThen(step)` with `existingResult.andThen(step)`
+  - Replace `ResultKit.pipeAsync(...)` pipelines with `ResultAsync.fromPromise(...)` or direct `ResultAsync` chaining
+
+### Minor Changes
+
+- 8fbc07e: Add back `ResultKit` as a branded static facade over the new fluent v2 API.
+
+  What was added:
+
+  - `ResultKit.ok(...)`
+  - `ResultKit.fail(...)`
+  - `ResultKit.err(...)`
+  - `ResultKit.okAsync(...)`
+  - `ResultKit.errAsync(...)`
+  - boundary helpers such as `ResultKit.fromThrowable(...)`, `ResultKit.fromNullable(...)`, `ResultKit.combine(...)`, and async counterparts
+
+  Why:
+
+  The fluent v2 model already supports direct composition on `Ok`, `Err`, and `ResultAsync`, but some consumers still want a package-branded entrypoint in user code and examples. This facade preserves the `result-kit` identity without reintroducing pipeline wrappers or moving behavior back out of the fluent result types.
+
+  Notes:
+
+  - `ResultKit` is a thin facade only; the actual runtime behavior still lives on `Ok`, `Err`, `Result`, and `ResultAsync`
+  - `ResultKit.pipe(...)` and `ResultKit.pipeAsync(...)` are still removed
+  - fluent chaining continues to happen on the returned result instances
+
 ## 1.1.0
 
 ### Minor Changes
