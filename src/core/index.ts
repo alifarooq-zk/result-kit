@@ -5,12 +5,14 @@ export {
   type TypedErrorUnion,
 } from './error';
 export {
-  type Failure,
-  type Result,
-  type Success,
+  Err,
+  Ok,
+  Result,
+  ResultAsync,
+  err,
+  errAsync,
+  fail,
+  ok,
+  okAsync,
 } from './result';
-export {
-  AsyncResultPipeline,
-  ResultPipeline,
-} from './pipeline';
 export { ResultKit } from './result-kit';
