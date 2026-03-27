@@ -9,4 +9,5 @@ export {
   type Result,
   type Success,
 } from './result';
+export { ResultPipeline } from './pipeline';
 export { ResultKit } from './result-kit';

@@ -7,6 +7,22 @@ import {
   type Result,
   type Success,
 } from './result';
+import { ResultPipeline } from './pipeline';
+
+const isResultShape = <T, E>(value: unknown): value is Result<T, E> => {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const candidate = value as {
+    ok?: unknown;
+  };
+
+  // `pipe(...)` accepts either a raw value or an existing Result. Runtime
+  // normalization must therefore be shape-based, so values that already match
+  // the Result contract are treated as wrapped results.
+  return candidate.ok === true || candidate.ok === false;
+};
 
 /**
  * Static utilities for creating, transforming, inspecting, and consuming
@@ -16,6 +32,14 @@ import {
  * rather than a type meant to be instantiated.
  */
 export abstract class ResultKit {
+  static pipe<T>(value: T): ResultPipeline<T, never>;
+  static pipe<T, E>(result: Result<T, E>): ResultPipeline<T, E>;
+  static pipe<T, E>(valueOrResult: T | Result<T, E>): ResultPipeline<T, E> {
+    return isResultShape<T, E>(valueOrResult)
+      ? new ResultPipeline(valueOrResult)
+      : new ResultPipeline(this.success(valueOrResult as T));
+  }
+
   /**
    * Determines whether a result contains a successful value.
    *
