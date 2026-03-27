@@ -1,5 +1,11 @@
 # @zireal/result-kit
 
+## 1.1.0
+
+### Minor Changes
+
+- cf83708: Add fluent sync and async result pipelines for composing result-producing workflows with automatic error union widening.
+
 ## 1.0.2
 
 ### Patch Changes
