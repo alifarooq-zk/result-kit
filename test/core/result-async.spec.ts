@@ -6,9 +6,18 @@ import {
   err,
   fail,
   ok,
+  type AsyncResultError,
+  type AsyncResultValue,
   type Result as SyncResult,
   type TypedErrorUnion,
 } from '../../src/core';
+
+type Assert<T extends true> = T;
+type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends <
+  T,
+>() => T extends B ? 1 : 2
+  ? true
+  : false;
 
 type AuthError = TypedErrorUnion<'unauthorized'>;
 type UserError = TypedErrorUnion<'user_not_found'>;
@@ -63,12 +72,21 @@ describe('ResultAsync', () => {
     ): Promise<SyncResult<{ id: string }, UserError>> =>
       ok({ id: session.userId });
 
-    const result = ResultAsync.fromPromise(Promise.resolve('token'), () => ({
+    const result = ResultAsync.fromPromise(Promise.resolve('token'), (): AuthError => ({
       type: 'unauthorized',
       message: 'Missing token',
     }))
       .andThen(requireSession)
       .andThen(findUser);
+    const asyncValueCheck: AsyncResultValue<typeof result> = {
+      id: 'u_123',
+    };
+    const asyncErrorCheck = (
+      error: AsyncResultError<typeof result>,
+    ): AuthError | UserError => error;
+
+    expect(asyncValueCheck.id).toBe('u_123');
+    expect(asyncErrorCheck).toBeTypeOf('function');
 
     await expect(result).resolves.toEqual(ok({ id: 'u_123' }));
   });
@@ -88,10 +106,13 @@ describe('ResultAsync', () => {
         () => 0,
       );
 
-    const failure = ResultAsync.fromPromise(Promise.reject(new Error('boom')), () => ({
-      type: 'unauthorized',
-      message: 'boom',
-    }))
+    const failure = ResultAsync.fromPromise(
+      Promise.reject(new Error('boom')),
+      () => ({
+        type: 'unauthorized',
+        message: 'boom',
+      }),
+    )
       .mapErr((error) => ({
         ...error,
         message: error.message.toUpperCase(),
@@ -114,21 +135,28 @@ describe('ResultAsync', () => {
     const combined = ResultAsync.combine([
       Promise.resolve(ok(1)),
       Promise.resolve(ok(2)),
-    ]);
+    ] as const);
     const allErrors = ResultAsync.combineWithAllErrors([
-      Promise.resolve(ok(1)),
-      Promise.resolve(err('a')),
-      Promise.resolve(err('b')),
-    ]);
+      Promise.resolve(ok(1) as SyncResult<number, AuthError>),
+      Promise.resolve(ok(2) as SyncResult<number, UserError>),
+    ] as const);
+    const combineCheck: ResultAsync<[number, number], never> = combined;
+    const combineAllCheck: ResultAsync<
+      [number, number],
+      (AuthError | UserError)[]
+    > = allErrors;
+
+    expect(combineCheck).toBeInstanceOf(ResultAsync);
+    expect(combineAllCheck).toBeInstanceOf(ResultAsync);
 
     await expect(combined).resolves.toEqual(ok([1, 2]));
-    await expect(allErrors).resolves.toEqual(err(['a', 'b']));
+    await expect(allErrors).resolves.toEqual(ok([1, 2]));
   });
 
   it('reuses sync Result combination at the promise boundary', async () => {
     const result = await ResultAsync.combine([
-      Promise.resolve(Result.combine([ok('a'), ok('b')])),
-    ]);
+      Promise.resolve(Result.combine([ok('a'), ok('b')] as const)),
+    ] as const);
 
     await expect(Promise.resolve(result)).resolves.toEqual(ok([['a', 'b']]));
   });

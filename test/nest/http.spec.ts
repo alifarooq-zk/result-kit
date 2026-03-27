@@ -41,7 +41,7 @@ describe("@zireal/result-kit/nest", () => {
     expect(() =>
       unwrapOrThrow(result, {
         mapError: (error) =>
-          isTypedError(error) && error.type === "validation_error"
+          isTypedError(error, "validation_error")
             ? new BadRequestException({
                 code: "BAD_INPUT",
                 message: error.message,

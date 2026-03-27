@@ -45,15 +45,11 @@ export class UserController {
 
     return unwrapOrThrow(result, {
       mapError: (error) => {
-        if (!isTypedError(error)) {
-          return undefined;
-        }
-
-        if (error.type === "validation_error") {
+        if (isTypedError(error, "validation_error")) {
           return new BadRequestException(error.message);
         }
 
-        if (error.type === "not_found") {
+        if (isTypedError(error, "not_found")) {
           return new NotFoundException(error.message);
         }
 

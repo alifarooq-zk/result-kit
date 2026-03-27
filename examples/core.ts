@@ -1,6 +1,7 @@
 import {
   ResultKit,
   fail,
+  isTypedError,
   ok,
   type Result,
   type TypedErrorUnion,
@@ -55,5 +56,14 @@ const brandedResult = ResultKit
   .andThen(requireSession)
   .andThen((session) => findUser(session.userId));
 
-console.log(result.match((user) => user.name, (error) => error.message));
-console.log(brandedResult.match((user) => user.name, (error) => error.message));
+if (result.ok) {
+  console.log(result.value.name);
+} else if (isTypedError(result.error, "not_found")) {
+  console.log(`Missing user: ${result.error.message}`);
+} else {
+  console.log(result.error.message);
+}
+
+console.log(
+  brandedResult.match((user) => user.name, (error) => error.message),
+);
