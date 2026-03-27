@@ -15,4 +15,12 @@ export {
   ok,
   okAsync,
 } from './result';
+export type {
+  AsyncResultError,
+  AsyncResultValue,
+  ResultErr,
+  ResultError,
+  ResultOk,
+  ResultValue,
+} from './result';
 export { ResultKit } from './result-kit';

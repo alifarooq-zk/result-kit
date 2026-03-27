@@ -179,15 +179,11 @@ export const unwrapOrThrow = <T, E>(
   result: Result<T, E>,
   options?: NestErrorOptions<E>,
 ): T => {
-  if (result.isOk()) {
+  if (result.ok) {
     return result.value;
   }
 
-  if (result.isErr()) {
-    throw toHttpException(result.error, options);
-  }
-
-  throw new Error('Unreachable result branch');
+  throw toHttpException(result.error, options);
 };
 
 /**

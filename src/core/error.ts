@@ -5,7 +5,12 @@
  * while preserving a human-readable `message` and optional machine-readable
  * metadata.
  */
-export interface TypedError<TType extends string = string> {
+export interface TypedError<
+  TType extends string = string,
+  TDetails extends Record<string, unknown> | undefined =
+    | Record<string, unknown>
+    | undefined,
+> {
   /**
    * Stable error discriminator used for narrowing, branching, and mapping.
    */
@@ -19,7 +24,7 @@ export interface TypedError<TType extends string = string> {
   /**
    * Optional serializable metadata describing the failure context.
    */
-  readonly details?: Record<string, unknown>;
+  readonly details?: TDetails;
 
   /**
    * Optional original cause for debugging or tracing.
@@ -31,7 +36,12 @@ export interface TypedError<TType extends string = string> {
  * Alias that makes it explicit that a typed error is constrained to one
  * concrete discriminator.
  */
-export type TypedErrorOf<TType extends string> = TypedError<TType>;
+export type TypedErrorOf<
+  TType extends string,
+  TDetails extends Record<string, unknown> | undefined =
+    | Record<string, unknown>
+    | undefined,
+> = TypedError<TType, TDetails>;
 
 /**
  * Produces a union of {@link TypedError} variants from a union of string
@@ -55,7 +65,15 @@ export type TypedErrorUnion<TType extends string> = TType extends string
  * @param error Value to validate at runtime.
  * @returns `true` when `error` matches the expected structured error shape.
  */
-export const isTypedError = (error: unknown): error is TypedError<string> => {
+export function isTypedError(error: unknown): error is TypedError<string>;
+export function isTypedError<TType extends string>(
+  error: unknown,
+  type: TType,
+): error is TypedError<TType>;
+export function isTypedError<TType extends string>(
+  error: unknown,
+  type?: TType,
+): error is TypedError<string> {
   if (!error || typeof error !== 'object') {
     return false;
   }
@@ -83,5 +101,9 @@ export const isTypedError = (error: unknown): error is TypedError<string> => {
     return false;
   }
 
+  if (type !== undefined && candidate.type !== type) {
+    return false;
+  }
+
   return true;
-};
+}

@@ -11,8 +11,9 @@ import {
 /**
  * Branded static facade over the fluent result API.
  *
- * `ResultKit` exists as a package-level entrypoint only. Result behavior still
- * lives on `Ok`, `Err`, `Result`, and `ResultAsync`.
+ * `ResultKit` exists as a package-level entrypoint only. Fluent result
+ * behavior lives on `Ok`, `Err`, and `ResultAsync`, while `Result` exposes the
+ * static-style helper namespace.
  */
 export abstract class ResultKit {
   static ok = ok;
