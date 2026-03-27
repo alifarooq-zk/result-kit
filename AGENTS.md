@@ -19,14 +19,14 @@
 ## Architecture
 
 - [src/index.ts](src/index.ts) re-exports the framework-agnostic core only.
-- [src/core/index.ts](src/core/index.ts) is the main library surface for `Result`, `TypedError`, and `ResultKit`.
+- [src/core/index.ts](src/core/index.ts) is the main library surface for `Result`, `ResultAsync`, `TypedError`, and the top-level constructors such as `ok(...)` and `fail(...)`.
 - [src/nest/index.ts](src/nest/index.ts) contains the optional NestJS adapter layer.
 - Keep NestJS-specific logic out of `src/core`.
 - If you add a new public entrypoint, update [tsdown.config.ts](tsdown.config.ts) and package exports together.
 
 ## Coding Guidance
 
-- Prefer the existing `ResultKit.success(...)` and `ResultKit.fail(...)` helpers over ad hoc result object construction.
+- Prefer the fluent constructors `ok(...)` and `fail(...)`, or the branded `ResultKit.ok(...)` and `ResultKit.fail(...)` facade, over ad hoc result construction. Use `err(...)` only when a non-`TypedError` failure payload is intentional.
 - Keep typed error shapes aligned with the existing `type` and `message` convention used throughout the package.
 - Preserve the package split between core utilities and transport or framework adapters.
 - Mirror source changes with tests under [test/core](test/core) or [test/nest](test/nest) as appropriate.

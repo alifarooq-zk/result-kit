@@ -1,6 +1,6 @@
 # @zireal/result-kit
 
-Type-safe result and structured error utilities for TypeScript, with optional NestJS adapters.
+Type-safe fluent results for TypeScript, with `TypedError` as the default error model and an optional NestJS adapter.
 
 ## Packages
 
@@ -24,14 +24,6 @@ pnpm add @nestjs/common
 
 ## Core Concepts
 
-### `Result<T, E>`
-
-```ts
-type Result<T, E> = Success<T> | Failure<E>;
-```
-
-Use `Result` to model success and failure explicitly rather than throwing through your service layer.
-
 ### `TypedError`
 
 ```ts
@@ -43,13 +35,35 @@ interface TypedError<TType extends string = string> {
 }
 ```
 
-`TypedError` is the package’s structured error convention. You can still use any `E` with `Result<T, E>`, but `TypedError` works well for application and domain failures.
+`TypedError` is the package's default error convention. It gives failures a stable `type` discriminator while preserving a human-readable `message` and optional structured metadata.
+
+Use `TypedErrorUnion<...>` to model domain-specific failures:
+
+```ts
+type UserError = TypedErrorUnion<"not_found" | "validation_error">;
+```
+
+### `Result<T, E>`
+
+`Result<T, E>` is a fluent result object with two concrete variants:
+
+- `Ok<T>` for success values
+- `Err<E>` for failure values
+
+Construct results with:
+
+- `ok(value)` for success
+- `fail(typedError)` for the default `TypedError` failure path
+- `err(error)` for generic non-typed failures
+- `ResultKit.ok(...)`, `ResultKit.fail(...)`, and `ResultKit.err(...)` when you want the same fluent behavior through the package-branded facade
 
 ## Core Usage
 
 ```ts
 import {
   ResultKit,
+  fail,
+  ok,
   type Result,
   type TypedErrorUnion,
 } from "@zireal/result-kit";
@@ -58,25 +72,25 @@ type UserError = TypedErrorUnion<"not_found" | "validation_error">;
 
 const findUser = (id: string): Result<{ id: string }, UserError> => {
   if (!id.trim()) {
-    return ResultKit.fail({
+    return fail({
       type: "validation_error",
       message: "id is required",
     });
   }
 
   if (id !== "123") {
-    return ResultKit.fail({
+    return fail({
       type: "not_found",
       message: "User not found",
       details: { id },
     });
   }
 
-  return ResultKit.success({ id });
+  return ok({ id });
 };
 ```
 
-Chain result-producing services fluently with pipeline helpers:
+Compose result-producing services directly on the instance:
 
 ```ts
 type AuthError = TypedErrorUnion<"missing_token">;
@@ -85,27 +99,66 @@ const requireSession = (
   token: string,
 ): Result<{ userId: string }, AuthError> => {
   if (!token.trim()) {
-    return ResultKit.fail({
+    return fail({
       type: "missing_token",
       message: "token is required",
     });
   }
 
-  return ResultKit.success({ userId: "123" });
+  return ok({ userId: "123" });
 };
 
-const result = ResultKit
-  .pipe("session-token")
+const result = ok("session-token")
   .andThen(requireSession)
-  .andThen((session) => findUser(session.userId))
-  .done();
+  .andThen((session) => findUser(session.userId));
+
+const message = result.match(
+  (user) => user.id,
+  (error) => error.message,
+);
+
+const branded = ResultKit
+  .ok("session-token")
+  .andThen(requireSession)
+  .andThen((session) => findUser(session.userId));
+```
+
+## Async Usage
+
+Use `ResultAsync` for fluent async composition:
+
+```ts
+import { ResultAsync, fail, ok, type TypedErrorUnion } from "@zireal/result-kit";
+
+type ApiError = TypedErrorUnion<"network_error">;
+
+const fetchUser = (id: string) =>
+  ResultAsync.fromPromise(fetch(`/users/${id}`).then((res) => res.json()), () =>
+    ({
+      type: "network_error",
+      message: "Unable to fetch user",
+    }) satisfies ApiError,
+  );
+
+const user = await fetchUser("123")
+  .andThen((payload) => ok(payload.user))
+  .unwrapOr({ id: "fallback" });
 ```
 
 ## Nest Usage
 
 ```ts
 import { Controller, Get, Param } from "@nestjs/common";
+import { type Result, type TypedErrorUnion } from "@zireal/result-kit";
 import { unwrapOrThrow } from "@zireal/result-kit/nest";
+
+type UserError = TypedErrorUnion<"not_found" | "validation_error">;
+
+class UserService {
+  async findUser(id: string): Promise<Result<{ id: string }, UserError>> {
+    // return ok(...) or fail(...)
+  }
+}
 
 @Controller("users")
 export class UserController {
@@ -118,16 +171,16 @@ export class UserController {
 }
 ```
 
-Use a mapper when your domain error types need custom HTTP status behavior:
+Use a mapper when your domain errors need custom HTTP status behavior:
 
 ```ts
 import { BadRequestException, NotFoundException } from "@nestjs/common";
+import { isTypedError } from "@zireal/result-kit";
 import { unwrapOrThrow } from "@zireal/result-kit/nest";
-import { ResultKit } from "@zireal/result-kit";
 
 const user = unwrapOrThrow(result, {
   mapError: (error) => {
-    if (!ResultKit.isTypedError(error)) return undefined;
+    if (!isTypedError(error)) return undefined;
     if (error.type === "validation_error") {
       return new BadRequestException(error.message);
     }
@@ -144,19 +197,33 @@ const user = unwrapOrThrow(result, {
 
 ### Core
 
-- `TypedError`, `TypedErrorOf`, `TypedErrorUnion`
-- `Success`, `Failure`, `Result`
-- `ResultPipeline`, `AsyncResultPipeline`
-- `ResultKit.success`, `failure`, `fail`
-- `ResultKit.pipe`, `pipeAsync`
-- `ResultKit.isSuccess`, `isFailure`, `isTypedError`
-- `ResultKit.map`, `mapAsync`, `mapError`, `mapErrorAsync`
-- `ResultKit.andThen`, `andThenAsync`, `orElse`, `orElseAsync`
-- `ResultKit.match`, `matchAsync`
-- `ResultKit.unwrap`, `unwrapSuccess`, `unwrapFailure`, `unwrapOr`, `unwrapOrElse`, `unwrapOrElseAsync`
-- `ResultKit.combine`, `combineAsync`, `combineWithAllErrors`, `combineWithAllErrorsAsync`
-- `ResultKit.fromNullable`, `fromPredicate`, `fromPromise`, `fromThrowable`, `fromThrowableAsync`
-- `ResultKit.partition`, `filterSuccesses`, `filterFailures`, `toNullable`, `flatten`
+- `TypedError`, `TypedErrorOf`, `TypedErrorUnion`, `isTypedError`
+- `Ok`, `Err`, `Result`, `ResultAsync`
+- `ok`, `fail`, `err`, `okAsync`, `errAsync`
+- `ResultKit`
+- `Result.fromThrowable`, `Result.fromNullable`, `Result.fromPredicate`
+- `Result.combine`, `Result.combineWithAllErrors`
+- `ResultAsync.fromPromise`, `ResultAsync.fromThrowable`
+- `ResultAsync.combine`, `ResultAsync.combineWithAllErrors`
+
+### Result instance methods
+
+- `isOk`, `isErr`
+- `map`, `mapErr`
+- `andThen`, `orElse`
+- `match`
+- `unwrapOr`, `unwrapOrElse`
+- `asyncMap`, `asyncAndThen`
+- `andTee`, `orTee`, `andThrough`
+
+### ResultAsync instance methods
+
+- `map`, `mapErr`
+- `andThen`, `orElse`
+- `match`
+- `unwrapOr`
+- `andTee`, `orTee`, `andThrough`
+- `then`
 
 ### Nest
 
