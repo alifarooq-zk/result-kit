@@ -4,6 +4,25 @@
  * `TypedError` gives failures a stable string discriminator through `type`
  * while preserving a human-readable `message` and optional machine-readable
  * metadata.
+ *
+ * @typeParam TType Stable discriminator used for narrowing and mapping.
+ * @typeParam TDetails Optional structured payload attached to `details`.
+ * @example
+ * ```ts
+ * type ValidationError = TypedError<
+ *   "validation_error",
+ *   { field: string; reason: string }
+ * >;
+ *
+ * const error: ValidationError = {
+ *   type: "validation_error",
+ *   message: "Email is invalid",
+ *   details: {
+ *     field: "email",
+ *     reason: "invalid_format",
+ *   },
+ * };
+ * ```
  */
 export interface TypedError<
   TType extends string = string,
@@ -35,6 +54,18 @@ export interface TypedError<
 /**
  * Alias that makes it explicit that a typed error is constrained to one
  * concrete discriminator.
+ *
+ * @typeParam TType Stable discriminator used for narrowing and mapping.
+ * @typeParam TDetails Optional structured payload attached to `details`.
+ * @example
+ * ```ts
+ * type NotFoundError = TypedErrorOf<"not_found">;
+ *
+ * const error: NotFoundError = {
+ *   type: "not_found",
+ *   message: "User was not found",
+ * };
+ * ```
  */
 export type TypedErrorOf<
   TType extends string,
@@ -49,6 +80,17 @@ export type TypedErrorOf<
  *
  * This is useful for defining domain-specific error unions such as
  * `"not_found" | "validation_error"`.
+ *
+ * @typeParam TType Union of error discriminator strings.
+ * @example
+ * ```ts
+ * type UserError = TypedErrorUnion<"not_found" | "validation_error">;
+ *
+ * const error: UserError = {
+ *   type: "validation_error",
+ *   message: "Name is required",
+ * };
+ * ```
  */
 export type TypedErrorUnion<TType extends string> = TType extends string
   ? TypedError<TType>
@@ -63,7 +105,31 @@ export type TypedErrorUnion<TType extends string> = TType extends string
  * than `null` or an array.
  *
  * @param error Value to validate at runtime.
+ * @param type Optional discriminator to require in addition to the base
+ * `TypedError` contract.
  * @returns `true` when `error` matches the expected structured error shape.
+ * @example
+ * ```ts
+ * const candidate: unknown = {
+ *   type: "validation_error",
+ *   message: "Payload is invalid",
+ * };
+ *
+ * if (isTypedError(candidate)) {
+ *   console.log(candidate.type);
+ * }
+ * ```
+ * @example
+ * ```ts
+ * const candidate: unknown = {
+ *   type: "not_found",
+ *   message: "User was not found",
+ * };
+ *
+ * if (isTypedError(candidate, "not_found")) {
+ *   console.log(candidate.message);
+ * }
+ * ```
  */
 export function isTypedError(error: unknown): error is TypedError<string>;
 export function isTypedError<TType extends string>(

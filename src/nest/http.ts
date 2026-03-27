@@ -13,6 +13,16 @@ import type { Result, ResultAsync } from '../core/result';
  * Returning this shape from `mapError` lets callers control HTTP status and
  * response body without constructing a Nest `HttpException` instance
  * themselves.
+ *
+ * @example
+ * ```ts
+ * const descriptor: HttpExceptionDescriptor = {
+ *   status: 400,
+ *   code: "BAD_INPUT",
+ *   message: "Email is invalid",
+ *   details: { field: "email" },
+ * };
+ * ```
  */
 export interface HttpExceptionDescriptor {
   /**
@@ -43,6 +53,17 @@ export interface HttpExceptionDescriptor {
 
 /**
  * Configures how result failures should be mapped into Nest HTTP exceptions.
+ *
+ * @typeParam E Domain error type accepted by `mapError`.
+ * @example
+ * ```ts
+ * const options: NestErrorOptions<{ type: string; message: string }> = {
+ *   mapError: (error) =>
+ *     error.type === "not_found"
+ *       ? new NotFoundException(error.message)
+ *       : undefined,
+ * };
+ * ```
  */
 export interface NestErrorOptions<E> {
   /**
@@ -63,11 +84,17 @@ export interface NestErrorOptions<E> {
 /**
  * Default message used when the incoming error value does not expose a usable
  * message.
+ *
+ * This is intentionally shared by the internal fallback paths so unknown
+ * errors produce a stable response shape.
  */
 const DEFAULT_UNKNOWN_MESSAGE = 'An unknown error occurred';
 
 /**
  * Default application error code used for internal server failures.
+ *
+ * This keeps unknown and unhandled failures aligned across all fallback
+ * branches.
  */
 const DEFAULT_ERROR_CODE = 'INTERNAL_SERVER_ERROR';
 
@@ -77,6 +104,11 @@ const DEFAULT_ERROR_CODE = 'INTERNAL_SERVER_ERROR';
  *
  * @param value Raw error type value.
  * @returns A sanitized, uppercase error code or the internal default code.
+ * @example
+ * ```ts
+ * const code = normalizeErrorCode("validation-error");
+ * // "VALIDATION_ERROR"
+ * ```
  */
 const normalizeErrorCode = (value: string): string =>
   value
@@ -90,6 +122,14 @@ const normalizeErrorCode = (value: string): string =>
  *
  * @param descriptor Response descriptor to convert.
  * @returns A concrete `HttpException` with normalized payload defaults.
+ * @example
+ * ```ts
+ * const exception = toHttpExceptionFromDescriptor({
+ *   status: 404,
+ *   code: "USER_NOT_FOUND",
+ *   message: "User was not found",
+ * });
+ * ```
  */
 const toHttpExceptionFromDescriptor = (
   descriptor: HttpExceptionDescriptor,
@@ -123,6 +163,23 @@ const toHttpExceptionFromDescriptor = (
  * @param error Error value to convert.
  * @param options Optional mapping and fallback configuration.
  * @returns A Nest `HttpException` representing the provided error.
+ * @example
+ * ```ts
+ * const exception = toHttpException({
+ *   type: "validation_error",
+ *   message: "Email is invalid",
+ *   details: { field: "email" },
+ * });
+ * ```
+ * @example
+ * ```ts
+ * const exception = toHttpException("missing_user", {
+ *   mapError: (error) =>
+ *     error === "missing_user"
+ *       ? { status: 404, code: "USER_NOT_FOUND", message: "User missing" }
+ *       : undefined,
+ * });
+ * ```
  */
 export const toHttpException = <E>(
   error: E,
@@ -174,6 +231,22 @@ export const toHttpException = <E>(
  * @param options Optional error mapping and fallback configuration.
  * @returns The successful value when `result` is successful.
  * @throws {HttpException} When `result` is failed.
+ * @example
+ * ```ts
+ * const user = unwrapOrThrow(ok({ id: "u_123" }));
+ * ```
+ * @example
+ * ```ts
+ * const user = unwrapOrThrow(
+ *   err({ type: "not_found", message: "User missing" }),
+ *   {
+ *     mapError: (error) =>
+ *       isTypedError(error, "not_found")
+ *         ? { status: 404, code: "USER_NOT_FOUND", message: error.message }
+ *         : undefined,
+ *   },
+ * );
+ * ```
  */
 export const unwrapOrThrow = <T, E>(
   result: Result<T, E>,
@@ -196,6 +269,10 @@ export const unwrapOrThrow = <T, E>(
  * @param options Optional error mapping and fallback configuration.
  * @returns A promise resolving to the successful value.
  * @throws {HttpException} When the resolved result is failed.
+ * @example
+ * ```ts
+ * const user = await unwrapPromise(Promise.resolve(ok({ id: "u_123" })));
+ * ```
  */
 export const unwrapPromise = async <T, E>(
   promise: PromiseLike<Result<T, E>> | ResultAsync<T, E>,
