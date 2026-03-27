@@ -7,7 +7,10 @@ import {
   type Result,
   type Success,
 } from './result';
-import { ResultPipeline } from './pipeline';
+import {
+  AsyncResultPipeline,
+  ResultPipeline,
+} from './pipeline';
 
 const isResultShape = <T, E>(value: unknown): value is Result<T, E> => {
   if (!value || typeof value !== 'object') {
@@ -38,6 +41,24 @@ export abstract class ResultKit {
     return isResultShape<T, E>(valueOrResult)
       ? new ResultPipeline(valueOrResult)
       : new ResultPipeline(this.success(valueOrResult as T));
+  }
+
+  static pipeAsync<T>(value: T): AsyncResultPipeline<T, never>;
+  static pipeAsync<T>(value: Promise<T>): AsyncResultPipeline<T, never>;
+  static pipeAsync<T, E>(result: Result<T, E>): AsyncResultPipeline<T, E>;
+  static pipeAsync<T, E>(
+    result: Promise<Result<T, E>>,
+  ): AsyncResultPipeline<T, E>;
+  static pipeAsync<T, E>(
+    valueOrResultOrPromise: T | Promise<T> | Result<T, E> | Promise<Result<T, E>>,
+  ): AsyncResultPipeline<T, E> {
+    return new AsyncResultPipeline(
+      Promise.resolve(valueOrResultOrPromise).then((resolved) =>
+        isResultShape<T, E>(resolved)
+          ? resolved
+          : this.success(resolved as T),
+      ),
+    );
   }
 
   /**
