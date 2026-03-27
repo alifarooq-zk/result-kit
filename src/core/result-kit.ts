@@ -43,12 +43,12 @@ export abstract class ResultKit {
       : new ResultPipeline(this.success(valueOrResult as T));
   }
 
-  static pipeAsync<T>(value: T): AsyncResultPipeline<T, never>;
-  static pipeAsync<T>(value: Promise<T>): AsyncResultPipeline<T, never>;
-  static pipeAsync<T, E>(result: Result<T, E>): AsyncResultPipeline<T, E>;
   static pipeAsync<T, E>(
     result: Promise<Result<T, E>>,
   ): AsyncResultPipeline<T, E>;
+  static pipeAsync<T>(value: Promise<T>): AsyncResultPipeline<T, never>;
+  static pipeAsync<T, E>(result: Result<T, E>): AsyncResultPipeline<T, E>;
+  static pipeAsync<T>(value: T): AsyncResultPipeline<T, never>;
   static pipeAsync<T, E>(
     valueOrResultOrPromise: T | Promise<T> | Result<T, E> | Promise<Result<T, E>>,
   ): AsyncResultPipeline<T, E> {
