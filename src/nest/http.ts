@@ -5,8 +5,7 @@ import {
 } from '@nestjs/common';
 
 import { isTypedError } from '../core/error';
-import type { Result } from '../core/result';
-import { ResultKit } from '../core/result-kit';
+import type { Result, ResultAsync } from '../core/result';
 
 /**
  * Describes the HTTP exception payload that should be produced for a failure.
@@ -180,11 +179,15 @@ export const unwrapOrThrow = <T, E>(
   result: Result<T, E>,
   options?: NestErrorOptions<E>,
 ): T => {
-  if (ResultKit.isSuccess(result)) {
+  if (result.isOk()) {
     return result.value;
   }
 
-  throw toHttpException(result.error, options);
+  if (result.isErr()) {
+    throw toHttpException(result.error, options);
+  }
+
+  throw new Error('Unreachable result branch');
 };
 
 /**
@@ -199,6 +202,6 @@ export const unwrapOrThrow = <T, E>(
  * @throws {HttpException} When the resolved result is failed.
  */
 export const unwrapPromise = async <T, E>(
-  promise: Promise<Result<T, E>>,
+  promise: PromiseLike<Result<T, E>> | ResultAsync<T, E>,
   options?: NestErrorOptions<E>,
 ): Promise<T> => unwrapOrThrow(await promise, options);
