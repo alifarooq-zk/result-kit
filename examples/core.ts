@@ -4,7 +4,21 @@ import {
   type TypedErrorUnion,
 } from "@zireal/result-kit";
 
+type AuthError = TypedErrorUnion<"missing_token">;
 type UserError = TypedErrorUnion<"not_found" | "validation_error">;
+
+const requireSession = (
+  token: string,
+): Result<{ userId: string }, AuthError> => {
+  if (!token.trim()) {
+    return ResultKit.fail({
+      type: "missing_token",
+      message: "token is required",
+    });
+  }
+
+  return ResultKit.success({ userId: "123" });
+};
 
 const findUser = (
   id: string,
@@ -30,7 +44,11 @@ const findUser = (
   });
 };
 
-const result = findUser("123");
+const result = ResultKit
+  .pipe("session-token")
+  .andThen(requireSession)
+  .andThen((session) => findUser(session.userId))
+  .done();
 
 console.log(
   ResultKit.match(result, {

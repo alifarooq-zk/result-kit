@@ -76,6 +76,31 @@ const findUser = (id: string): Result<{ id: string }, UserError> => {
 };
 ```
 
+Chain result-producing services fluently with pipeline helpers:
+
+```ts
+type AuthError = TypedErrorUnion<"missing_token">;
+
+const requireSession = (
+  token: string,
+): Result<{ userId: string }, AuthError> => {
+  if (!token.trim()) {
+    return ResultKit.fail({
+      type: "missing_token",
+      message: "token is required",
+    });
+  }
+
+  return ResultKit.success({ userId: "123" });
+};
+
+const result = ResultKit
+  .pipe("session-token")
+  .andThen(requireSession)
+  .andThen((session) => findUser(session.userId))
+  .done();
+```
+
 ## Nest Usage
 
 ```ts
@@ -121,7 +146,9 @@ const user = unwrapOrThrow(result, {
 
 - `TypedError`, `TypedErrorOf`, `TypedErrorUnion`
 - `Success`, `Failure`, `Result`
+- `ResultPipeline`, `AsyncResultPipeline`
 - `ResultKit.success`, `failure`, `fail`
+- `ResultKit.pipe`, `pipeAsync`
 - `ResultKit.isSuccess`, `isFailure`, `isTypedError`
 - `ResultKit.map`, `mapAsync`, `mapError`, `mapErrorAsync`
 - `ResultKit.andThen`, `andThenAsync`, `orElse`, `orElseAsync`
