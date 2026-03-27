@@ -4,18 +4,18 @@ import {
 } from "@nestjs/common";
 import { describe, expect, it } from "vitest";
 
-import { ResultKit } from "../../src/core";
+import { ResultAsync, fail, isTypedError, ok } from "../../src/core";
 import { toHttpException, unwrapOrThrow, unwrapPromise } from "../../src/nest";
 
 describe("@zireal/result-kit/nest", () => {
   it("unwraps successful results without throwing", () => {
-    const value = unwrapOrThrow(ResultKit.success(42));
+    const value = unwrapOrThrow(ok(42));
 
     expect(value).toBe(42);
   });
 
   it("converts typed errors to internal server exceptions by default", () => {
-    const error = ResultKit.fail({
+    const error = fail({
       type: "validation_error",
       message: "Payload is invalid",
       details: { field: "email" },
@@ -32,7 +32,7 @@ describe("@zireal/result-kit/nest", () => {
   });
 
   it("supports caller-provided Nest mapping", () => {
-    const result = ResultKit.fail({
+    const result = fail({
       type: "validation_error",
       message: "Payload is invalid",
       details: { field: "email" },
@@ -41,7 +41,7 @@ describe("@zireal/result-kit/nest", () => {
     expect(() =>
       unwrapOrThrow(result, {
         mapError: (error) =>
-          ResultKit.isTypedError(error) && error.type === "validation_error"
+          isTypedError(error) && error.type === "validation_error"
             ? new BadRequestException({
                 code: "BAD_INPUT",
                 message: error.message,
@@ -54,7 +54,10 @@ describe("@zireal/result-kit/nest", () => {
 
   it("unwraps promise results and falls back on unknown errors", async () => {
     await expect(
-      unwrapPromise(Promise.resolve(ResultKit.success("ok"))),
+      unwrapPromise(Promise.resolve(ok("ok"))),
+    ).resolves.toBe("ok");
+    await expect(
+      unwrapPromise(ResultAsync.fromPromise(Promise.resolve("ok"), () => "boom")),
     ).resolves.toBe("ok");
 
     const exception = toHttpException({ nope: true });
