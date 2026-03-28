@@ -91,6 +91,54 @@ describe('ResultAsync', () => {
     await expect(result).resolves.toEqual(ok({ id: 'u_123' }));
   });
 
+  it('keeps mixed Result, ResultAsync, and PromiseLike<Result> chains fluent', async () => {
+    const loadSession = (token: string) => {
+      if (token === 'direct') {
+        return ok({ userId: token });
+      }
+
+      if (token === 'async') {
+        return ResultAsync.fromPromise(
+          Promise.resolve({ userId: token }),
+          (): AuthError => ({
+            type: 'unauthorized',
+            message: 'Missing token',
+          }),
+        );
+      }
+
+      return Promise.resolve(
+        fail({
+          type: 'unauthorized',
+          message: 'Missing token',
+        } satisfies AuthError),
+      );
+    };
+
+    const loadUser = (session: { userId: string }) =>
+      session.userId === 'direct'
+        ? ok({ id: session.userId, role: 'admin' as const })
+        : Promise.resolve(
+            ok({ id: session.userId, role: 'member' as const }),
+          );
+
+    const result = ResultAsync.fromPromise(
+      Promise.resolve('direct'),
+      (): AuthError => ({
+        type: 'unauthorized',
+        message: 'Missing token',
+      }),
+    )
+      .andThen(loadSession)
+      .andThen(loadUser)
+      .andThrough((user) =>
+        user.id ? ResultAsync.fromPromise(Promise.resolve(user.id.length), () => 'never') : ok(0),
+      )
+      .map((user) => user.role);
+
+    await expect(result).resolves.toEqual(ok('admin'));
+  });
+
   it('supports async mapErr, match, tee, and through helpers', async () => {
     const okSpy = vi.fn();
     const errSpy = vi.fn();
