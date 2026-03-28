@@ -149,6 +149,8 @@ const user = await fetchUser("123")
   .unwrapOr({ id: "fallback" });
 ```
 
+Async-capable fluent chains support callbacks that return `Result`, `ResultAsync`, or `PromiseLike<Result>` on different steps or branches, so complex service flows do not need typed intermediate variables just to keep callback payloads concrete.
+
 ## Nest Usage
 
 ```ts
