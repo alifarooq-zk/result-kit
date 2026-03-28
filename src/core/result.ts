@@ -32,30 +32,28 @@ export type Result<T, E> = Ok<T> | Err<E>;
  * @typeParam E Failure value type.
  * @example
  * ```ts
- * type Input = AsyncResultInput<string, Error>;
+ * type Input = ResultSource<string, Error>;
  * // Result<string, Error> | PromiseLike<Result<string, Error>> | ResultAsync<string, Error>
  * ```
  */
-type AsyncResultInput<T, E> =
+type ResultSource<T, E> =
   | Result<T, E>
   | PromiseLike<Result<T, E>>
   | ResultAsync<T, E>;
 
 /**
- * Resolves an {@link AsyncResultInput} down to its underlying {@link Result}
+ * Resolves a {@link ResultSource} down to its underlying {@link Result}
  * shape for internal type inference.
  *
  * @typeParam TValue Async result source to inspect.
  * @example
  * ```ts
- * type Resolved = ResolvedAsyncResult<Promise<Result<string, number>>>;
+ * type Resolved = ResolvedResult<Promise<Result<string, number>>>;
  * // Result<string, number>
  * ```
  */
-type ResolvedAsyncResult<TValue extends AsyncResultInput<unknown, unknown>> =
-  TValue extends PromiseLike<infer TResult>
-    ? Extract<TResult, Result<unknown, unknown>>
-    : Extract<TValue, Result<unknown, unknown>>;
+type ResolvedResult<TValue extends ResultSource<unknown, unknown>> =
+  Awaited<TValue> extends Result<unknown, unknown> ? Awaited<TValue> : never;
 
 /**
  * Extracts the success value type from an internal async result source.
@@ -63,12 +61,12 @@ type ResolvedAsyncResult<TValue extends AsyncResultInput<unknown, unknown>> =
  * @typeParam TValue Async result source to inspect.
  * @example
  * ```ts
- * type Value = AsyncInputValue<ResultAsync<{ id: string }, Error>>;
+ * type Value = ResolvedValue<ResultAsync<{ id: string }, Error>>;
  * // { id: string }
  * ```
  */
-type AsyncInputValue<TValue extends AsyncResultInput<unknown, unknown>> =
-  ResultValue<ResolvedAsyncResult<TValue>>;
+type ResolvedValue<TValue extends ResultSource<unknown, unknown>> =
+  ResultValue<ResolvedResult<TValue>>;
 
 /**
  * Extracts the failure type from an internal async result source.
@@ -76,12 +74,12 @@ type AsyncInputValue<TValue extends AsyncResultInput<unknown, unknown>> =
  * @typeParam TValue Async result source to inspect.
  * @example
  * ```ts
- * type Failure = AsyncInputError<Promise<Result<string, Error>>>;
+ * type Failure = ResolvedError<Promise<Result<string, Error>>>;
  * // Error
  * ```
  */
-type AsyncInputError<TValue extends AsyncResultInput<unknown, unknown>> =
-  ResultError<ResolvedAsyncResult<TValue>>;
+type ResolvedError<TValue extends ResultSource<unknown, unknown>> =
+  ResultError<ResolvedResult<TValue>>;
 
 /**
  * Extracts the success value type from a {@link Result}.
@@ -148,10 +146,8 @@ export type ResultErr<TValue extends Result<unknown, unknown>> =
  * ```
  */
 export type AsyncResultValue<TValue extends PromiseLike<Result<unknown, unknown>>> =
-  TValue extends PromiseLike<infer TResult>
-    ? TResult extends Result<unknown, unknown>
-      ? ResultValue<TResult>
-      : never
+  Awaited<TValue> extends Result<unknown, unknown>
+    ? ResultValue<Awaited<TValue>>
     : never;
 
 /**
@@ -165,10 +161,8 @@ export type AsyncResultValue<TValue extends PromiseLike<Result<unknown, unknown>
  * ```
  */
 export type AsyncResultError<TValue extends PromiseLike<Result<unknown, unknown>>> =
-  TValue extends PromiseLike<infer TResult>
-    ? TResult extends Result<unknown, unknown>
-      ? ResultError<TResult>
-      : never
+  Awaited<TValue> extends Result<unknown, unknown>
+    ? ResultError<Awaited<TValue>>
     : never;
 
 /**
@@ -179,11 +173,11 @@ export type AsyncResultError<TValue extends PromiseLike<Result<unknown, unknown>
  * @returns A promise that resolves to a {@link Result}.
  * @example
  * ```ts
- * const normalized = resolveAsyncResult(Promise.resolve(ok("ready")));
+ * const normalized = resolveResultSource(Promise.resolve(ok("ready")));
  * ```
  */
-const resolveAsyncResult = <T, E>(
-  input: AsyncResultInput<T, E>,
+const resolveResultSource = <T, E>(
+  input: ResultSource<T, E>,
 ): Promise<Result<T, E>> => Promise.resolve(input);
 
 /**
@@ -296,13 +290,15 @@ abstract class ResultBase<T, E> {
    * const result = ok("42").andThen(parseId);
    * ```
    */
-  andThen<U, F>(fn: (value: T) => Result<U, F>): Result<U, E | F> {
+  andThen<TNext extends Result<unknown, unknown>>(
+    fn: (value: T) => TNext,
+  ): Result<ResultValue<TNext>, E | ResultError<TNext>> {
     if (this.isOk()) {
-      return fn(this.value);
+      return fn(this.value) as Result<ResultValue<TNext>, E | ResultError<TNext>>;
     }
 
     if (this.isErr()) {
-      return err<E | F>(this.error);
+      return err<E | ResultError<TNext>>(this.error);
     }
 
     throw new Error("Unreachable result branch");
@@ -318,9 +314,11 @@ abstract class ResultBase<T, E> {
    * const result = err("missing_name").orElse(() => ok("anonymous"));
    * ```
    */
-  orElse<U, F>(fn: (error: E) => Result<U, F>): Result<T | U, F> {
+  orElse<TNext extends Result<unknown, unknown>>(
+    fn: (error: E) => TNext,
+  ): Result<T | ResultValue<TNext>, ResultError<TNext>> {
     if (this.isErr()) {
-      return fn(this.error);
+      return fn(this.error) as Result<T | ResultValue<TNext>, ResultError<TNext>>;
     }
 
     if (this.isOk()) {
@@ -434,19 +432,31 @@ abstract class ResultBase<T, E> {
    * const result = ok("u_123").asyncAndThen(findUser);
    * ```
    */
-  asyncAndThen<TNext extends AsyncResultInput<unknown, unknown>>(
+  asyncAndThen<TNext extends Result<unknown, unknown>>(
     fn: (value: T) => TNext,
-  ): ResultAsync<AsyncInputValue<TNext>, E | AsyncInputError<TNext>> {
+  ): ResultAsync<ResultValue<TNext>, E | ResultError<TNext>>;
+  asyncAndThen<U, F>(
+    fn: (value: T) => ResultAsync<U, F>,
+  ): ResultAsync<U, E | F>;
+  asyncAndThen<TNext extends Result<unknown, unknown>>(
+    fn: (value: T) => PromiseLike<TNext>,
+  ): ResultAsync<ResultValue<TNext>, E | ResultError<TNext>>;
+  asyncAndThen<TSource extends ResultSource<unknown, unknown>>(
+    fn: (value: T) => TSource,
+  ): ResultAsync<ResolvedValue<TSource>, E | ResolvedError<TSource>>;
+  asyncAndThen<TSource extends ResultSource<unknown, unknown>>(
+    fn: (value: T) => TSource,
+  ): ResultAsync<ResolvedValue<TSource>, E | ResolvedError<TSource>> {
     if (this.isErr()) {
       return new ResultAsync(
-        Promise.resolve(err<E | AsyncInputError<TNext>>(this.error)),
+        Promise.resolve(err<E | ResolvedError<TSource>>(this.error)),
       );
     }
 
     if (this.isOk()) {
       return new ResultAsync(
-        resolveAsyncResult(fn(this.value)) as Promise<
-          Result<AsyncInputValue<TNext>, E | AsyncInputError<TNext>>
+        resolveResultSource(fn(this.value)) as Promise<
+          Result<ResolvedValue<TSource>, E | ResolvedError<TSource>>
         >,
       );
     }
@@ -518,14 +528,18 @@ abstract class ResultBase<T, E> {
    * );
    * ```
    */
-  andThrough<F>(fn: (value: T) => Result<unknown, F>): Result<T, E | F> {
+  andThrough<TNext extends Result<unknown, unknown>>(
+    fn: (value: T) => TNext,
+  ): Result<T, E | ResultError<TNext>> {
     if (this.isErr()) {
-      return err<E | F>(this.error);
+      return err<E | ResultError<TNext>>(this.error);
     }
 
     if (this.isOk()) {
       const next = fn(this.value);
-      return next.isErr() ? err<E | F>(next.error) : ok(this.value);
+      return next.isErr()
+        ? err<E | ResultError<TNext>>(next.error as ResultError<TNext>)
+        : ok(this.value);
     }
 
     throw new Error("Unreachable result branch");
@@ -957,24 +971,32 @@ export class ResultAsync<T, E> implements PromiseLike<Result<T, E>> {
    * const result = okAsync("u_123").andThen(async (id) => ok({ id }));
    * ```
    */
-  andThen<TNext extends AsyncResultInput<unknown, unknown>>(
+  andThen<TNext extends Result<unknown, unknown>>(
     fn: (value: T) => TNext,
-  ): ResultAsync<AsyncInputValue<TNext>, E | AsyncInputError<TNext>> {
+  ): ResultAsync<ResultValue<TNext>, E | ResultError<TNext>>;
+  andThen<U, F>(fn: (value: T) => ResultAsync<U, F>): ResultAsync<U, E | F>;
+  andThen<TNext extends Result<unknown, unknown>>(
+    fn: (value: T) => PromiseLike<TNext>,
+  ): ResultAsync<ResultValue<TNext>, E | ResultError<TNext>>;
+  andThen<TSource extends ResultSource<unknown, unknown>>(
+    fn: (value: T) => TSource,
+  ): ResultAsync<ResolvedValue<TSource>, E | ResolvedError<TSource>>;
+  andThen<TSource extends ResultSource<unknown, unknown>>(
+    fn: (value: T) => TSource,
+  ): ResultAsync<ResolvedValue<TSource>, E | ResolvedError<TSource>> {
     return new ResultAsync(
       this.promise.then(
         async (
           result,
-        ): Promise<
-          Result<AsyncInputValue<TNext>, E | AsyncInputError<TNext>>
-        > => {
+        ): Promise<Result<ResolvedValue<TSource>, E | ResolvedError<TSource>>> => {
           if (result.isOk()) {
-            return resolveAsyncResult(fn(result.value)) as Promise<
-              Result<AsyncInputValue<TNext>, E | AsyncInputError<TNext>>
+            return resolveResultSource(fn(result.value)) as Promise<
+              Result<ResolvedValue<TSource>, E | ResolvedError<TSource>>
             >;
           }
 
           if (result.isErr()) {
-            return err<E | AsyncInputError<TNext>>(result.error);
+            return err<E | ResolvedError<TSource>>(result.error);
           }
 
           throw new Error("Unreachable result branch");
@@ -993,19 +1015,27 @@ export class ResultAsync<T, E> implements PromiseLike<Result<T, E>> {
    * const result = errAsync("missing_name").orElse(() => ok("anonymous"));
    * ```
    */
-  orElse<TNext extends AsyncResultInput<unknown, unknown>>(
+  orElse<TNext extends Result<unknown, unknown>>(
     fn: (error: E) => TNext,
-  ): ResultAsync<T | AsyncInputValue<TNext>, AsyncInputError<TNext>> {
+  ): ResultAsync<T | ResultValue<TNext>, ResultError<TNext>>;
+  orElse<U, F>(fn: (error: E) => ResultAsync<U, F>): ResultAsync<T | U, F>;
+  orElse<TNext extends Result<unknown, unknown>>(
+    fn: (error: E) => PromiseLike<TNext>,
+  ): ResultAsync<T | ResultValue<TNext>, ResultError<TNext>>;
+  orElse<TSource extends ResultSource<unknown, unknown>>(
+    fn: (error: E) => TSource,
+  ): ResultAsync<T | ResolvedValue<TSource>, ResolvedError<TSource>>;
+  orElse<TSource extends ResultSource<unknown, unknown>>(
+    fn: (error: E) => TSource,
+  ): ResultAsync<T | ResolvedValue<TSource>, ResolvedError<TSource>> {
     return new ResultAsync(
       this.promise.then(
         async (
           result,
-        ): Promise<
-          Result<T | AsyncInputValue<TNext>, AsyncInputError<TNext>>
-        > => {
+        ): Promise<Result<T | ResolvedValue<TSource>, ResolvedError<TSource>>> => {
           if (result.isErr()) {
-            return resolveAsyncResult(fn(result.error)) as Promise<
-              Result<T | AsyncInputValue<TNext>, AsyncInputError<TNext>>
+            return resolveResultSource(fn(result.error)) as Promise<
+              Result<T | ResolvedValue<TSource>, ResolvedError<TSource>>
             >;
           }
 
@@ -1134,23 +1164,36 @@ export class ResultAsync<T, E> implements PromiseLike<Result<T, E>> {
    * );
    * ```
    */
-  andThrough<TNext extends AsyncResultInput<unknown, unknown>>(
+  andThrough<TNext extends Result<unknown, unknown>>(
     fn: (value: T) => TNext,
-  ): ResultAsync<T, E | AsyncInputError<TNext>> {
+  ): ResultAsync<T, E | ResultError<TNext>>;
+  andThrough<U, F>(fn: (value: T) => ResultAsync<U, F>): ResultAsync<T, E | F>;
+  andThrough<TNext extends Result<unknown, unknown>>(
+    fn: (value: T) => PromiseLike<TNext>,
+  ): ResultAsync<T, E | ResultError<TNext>>;
+  andThrough<TSource extends ResultSource<unknown, unknown>>(
+    fn: (value: T) => TSource,
+  ): ResultAsync<T, E | ResolvedError<TSource>>;
+  andThrough<TSource extends ResultSource<unknown, unknown>>(
+    fn: (value: T) => TSource,
+  ): ResultAsync<T, E | ResolvedError<TSource>> {
     return new ResultAsync(
       this.promise.then(async (result) => {
         if (result.isOk()) {
-          const next = (await resolveAsyncResult(fn(result.value))) as Result<
-            AsyncInputValue<TNext>,
-            AsyncInputError<TNext>
-          >;
-          return next.isErr()
-            ? err<E | AsyncInputError<TNext>>(next.error)
-            : ok(result.value);
+          const next = (await resolveResultSource(
+            fn(result.value),
+          )) as ResolvedResult<TSource>;
+          if (next.isErr()) {
+            return err<E | ResolvedError<TSource>>(
+              next.error as ResolvedError<TSource>,
+            );
+          }
+
+          return ok(result.value);
         }
 
         if (result.isErr()) {
-          return err<E | AsyncInputError<TNext>>(result.error);
+          return err<E | ResolvedError<TSource>>(result.error);
         }
 
         throw new Error("Unreachable result branch");
