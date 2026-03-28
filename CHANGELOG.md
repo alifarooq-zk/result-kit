@@ -1,5 +1,15 @@
 # @zireal/result-kit
 
+## 4.0.0
+
+### Major Changes
+
+- 2cfaee6: Redesign the fluent `Result` and `ResultAsync` method typings to preserve
+  concrete callback inference across deep chains, including mixed `Result`,
+  `ResultAsync`, and `PromiseLike<Result>` flows. This keeps strict consumer
+  TypeScript and ESLint type-safety checks from degrading chained callback
+  payloads to `any` or `unknown` in complex service pipelines.
+
 ## 3.0.1
 
 ### Patch Changes
